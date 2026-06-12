@@ -1,9 +1,24 @@
+"""
+main.py
+
+API principal del proyecto Quincena.
+
+Este archivo define los endpoints que usarán:
+- El frontend para registrar gastos y consultar el dashboard.
+- Cloud Run para revisar que la aplicación está funcionando.
+- El worker de datos de forma indirecta, cuando después se agregue Pub/Sub.
+
+Rol del Integrante 1:
+Mantener estable el contrato de datos del backend.
+"""
+
 from datetime import date
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from db import insertar_gasto, obtener_dashboard
+
 
 app = FastAPI(
     title="Quincena API",
@@ -13,6 +28,13 @@ app = FastAPI(
 
 
 class GastoCreate(BaseModel):
+    """
+    Modelo de entrada para registrar un gasto.
+
+    Este modelo valida automáticamente el JSON recibido en POST /gastos.
+    Si falta un campo o el monto no es positivo, FastAPI responde con error 422.
+    """
+
     usuario_id: int = Field(..., example=1)
     monto: float = Field(..., gt=0, example=120.50)
     categoria: str = Field(..., min_length=1, max_length=50, example="comida")
@@ -22,7 +44,10 @@ class GastoCreate(BaseModel):
 @app.get("/health")
 def health():
     """
-    Health check usado por Cloud Run para validar que la API está viva.
+    Endpoint de health check.
+
+    Cloud Run puede usar este endpoint para confirmar que la API está viva.
+    También sirve para pruebas rápidas durante la demo.
     """
     return {"status": "ok"}
 
@@ -30,10 +55,17 @@ def health():
 @app.post("/gastos")
 def crear_gasto(gasto: GastoCreate):
     """
-    Registra un gasto nuevo.
+    Registra un gasto nuevo en Cloud SQL MySQL.
 
-    Más adelante este endpoint también publicará un evento en Pub/Sub
-    para que el worker del Integrante 3 procese pronósticos y anomalías.
+    Flujo actual:
+    1. Recibe y valida el JSON del gasto.
+    2. Inserta el gasto en la tabla gastos.
+    3. Devuelve el gasto registrado.
+
+    Flujo esperado en la versión integrada:
+    Después de guardar el gasto, este endpoint publicará un evento en Pub/Sub
+    para que el worker del Integrante 3 calcule pronósticos y anomalías
+    sin bloquear la respuesta al usuario.
     """
     try:
         nuevo_gasto = insertar_gasto(
@@ -56,6 +88,14 @@ def crear_gasto(gasto: GastoCreate):
 def dashboard(usuario_id: int):
     """
     Devuelve el resumen financiero del usuario.
+
+    Este endpoint mantiene el contrato que usará el frontend:
+    - proyectado
+    - normal_mensual
+    - gastado
+    - safe_to_spend
+    - desglose
+    - anomalias
     """
     try:
         return obtener_dashboard(usuario_id)
