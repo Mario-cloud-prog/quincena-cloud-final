@@ -15,6 +15,7 @@ Mantener estable el contrato de datos del backend.
 from datetime import date
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from db import insertar_gasto, obtener_dashboard
@@ -25,6 +26,15 @@ app = FastAPI(
     description="API para registrar gastos y consultar si el usuario llega a fin de mes.",
     version="1.0.0",
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 
 class GastoCreate(BaseModel):
