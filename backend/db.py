@@ -27,17 +27,27 @@ def get_connection():
     """
     Crea una conexión a MySQL usando variables de entorno.
 
-    Variables esperadas:
-    - DB_HOST
-    - DB_PORT
-    - DB_USER
-    - DB_PASSWORD
-    - DB_NAME
+    Modo local / Cloud Shell:
+    - Usa DB_HOST y DB_PORT.
+    - Normalmente DB_HOST=127.0.0.1 y DB_PORT=3306.
+    - Esto funciona cuando usamos Cloud SQL Auth Proxy localmente.
 
-    En local pueden vivir en un archivo .env.
-    En Cloud Run se configurarán como variables de entorno o secretos.
+    Modo Cloud Run:
+    - Usa DB_SOCKET.
+    - Cloud Run monta Cloud SQL en /cloudsql/PROJECT_ID:REGION:INSTANCE.
+    - Esto evita intentar conectarse a 127.0.0.1 dentro del contenedor.
     """
     try:
+        db_socket = os.getenv("DB_SOCKET")
+
+        if db_socket:
+            return mysql.connector.connect(
+                unix_socket=db_socket,
+                user=os.getenv("DB_USER", "quincena_user"),
+                password=os.getenv("DB_PASSWORD", ""),
+                database=os.getenv("DB_NAME", "quincena"),
+            )
+
         return mysql.connector.connect(
             host=os.getenv("DB_HOST", "127.0.0.1"),
             port=int(os.getenv("DB_PORT", "3306")),
@@ -45,6 +55,7 @@ def get_connection():
             password=os.getenv("DB_PASSWORD", ""),
             database=os.getenv("DB_NAME", "quincena"),
         )
+
     except Error as exc:
         raise RuntimeError(f"No se pudo conectar a MySQL: {exc}") from exc
 
