@@ -1,0 +1,16 @@
+# Variables de entorno
+.env
+backend/.env
+
+# Entornos virtuales
+venv/
+backend/venv/
+
+# Cache de Python
+__pycache__/
+backend/__pycache__/
+*.pyc
+
+# Logs y temporales
+*.log
+.DS_Store
