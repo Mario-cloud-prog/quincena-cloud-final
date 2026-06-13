@@ -24,10 +24,12 @@ gcloud services enable \
   artifactregistry.googleapis.com
 
 echo "Construyendo imagen Docker con Cloud Build..."
-gcloud builds submit \
-  --tag "${IMAGE}" \
-  --file cloud/Dockerfile .
+cp cloud/Dockerfile Dockerfile
 
+gcloud builds submit \
+  --tag "${IMAGE}" .
+
+rm Dockerfile
 echo "Desplegando servicio en Cloud Run..."
 gcloud run deploy "${SERVICE_NAME}" \
   --image "${IMAGE}" \
@@ -35,7 +37,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --platform managed \
   --allow-unauthenticated \
   --add-cloudsql-instances "${INSTANCE_CONNECTION_NAME}" \
-  --set-env-vars DB_HOST=127.0.0.1,DB_PORT=3306,DB_USER=quincena_user,DB_NAME=quincena \
+  --execution-environment gen2 \
+  --set-env-vars DB_SOCKET=/cloudsql/${INSTANCE_CONNECTION_NAME},DB_USER=quincena_user,DB_NAME=quincena \
   --set-secrets DB_PASSWORD=db-password:latest
-
 echo "Despliegue terminado."
