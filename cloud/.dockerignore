@@ -1,0 +1,25 @@
+# Archivos y carpetas que no deben copiarse a la imagen Docker.
+
+.git
+.gitignore
+
+# Entorno virtual local
+backend/venv
+venv
+
+# Variables de entorno reales
+backend/.env
+.env
+
+# Cache de Python
+backend/__pycache__
+__pycache__
+*.pyc
+
+# Archivos temporales o logs
+*.log
+.DS_Store
+
+# Documentación no necesaria dentro del contenedor
+docs
+README.md
