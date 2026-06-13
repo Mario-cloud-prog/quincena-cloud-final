@@ -12,25 +12,25 @@ El sistema permite registrar gastos, consultar un dashboard financiero, proyecta
 
 El usuario registra sus gastos diarios y la aplicación muestra un dashboard con:
 
-- gasto acumulado del mes;
-- proyección de gasto mensual;
-- presupuesto mensual normal;
-- dinero seguro para gastar;
-- desglose por categoría;
-- detección de gastos anómalos.
+* gasto acumulado del mes;
+* proyección de gasto mensual;
+* presupuesto mensual normal;
+* dinero seguro para gastar;
+* desglose por categoría;
+* detección de gastos anómalos.
 
-El proyecto integra backend, base de datos, despliegue serverless, mensajería asíncrona, analítica en BigQuery y preparación de BigQuery ML.
+El proyecto integra backend, frontend, base de datos, despliegue serverless, mensajería asíncrona, analítica en BigQuery y preparación de BigQuery ML.
 
 ---
 
 ## Arquitectura general
 
 ```txt
-Cliente / Demo / Frontend
+Frontend HTML
         ↓
-Cloud Run
+API pública en Cloud Run
         ↓
-FastAPI
+Backend FastAPI
         ↓
 Cloud SQL MySQL
 
@@ -81,6 +81,9 @@ quincena-cloud-final/
 │   ├── .dockerignore
 │   └── deploy.sh
 │
+├── frontend/
+│   └── index.html
+│
 ├── worker/
 │   ├── main.py
 │   └── requirements.txt
@@ -111,6 +114,28 @@ Endpoints principales:
 GET  /health
 POST /gastos
 GET  /dashboard?usuario_id=1
+```
+
+También se habilitó CORS para que el frontend pueda consumir la API pública desde el navegador.
+
+CORS significa **Cross-Origin Resource Sharing**, es decir, el mecanismo que permite o bloquea peticiones entre dominios distintos desde el navegador.
+
+En `backend/main.py` se agregó:
+
+```python
+from fastapi.middleware.cors import CORSMiddleware
+```
+
+y:
+
+```python
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 ```
 
 ---
@@ -209,6 +234,71 @@ Ejemplo de respuesta:
 
 ---
 
+## Frontend demo
+
+Además de las pruebas con `curl`, el proyecto incluye un frontend básico en HTML, CSS y JavaScript.
+
+Archivo:
+
+```txt
+frontend/index.html
+```
+
+El frontend consume la API pública desplegada en Cloud Run:
+
+```txt
+https://quincena-api-533093663517.us-central1.run.app
+```
+
+Funcionalidades del frontend:
+
+* consulta el dashboard del usuario;
+* muestra gasto acumulado;
+* muestra proyección mensual;
+* muestra safe to spend;
+* muestra presupuesto mensual normal;
+* muestra desglose por categoría;
+* muestra anomalías;
+* permite registrar un gasto nuevo desde formulario;
+* actualiza el dashboard después de registrar un gasto.
+
+Para probarlo desde Cloud Shell:
+
+```bash
+python3 -m http.server 8081 --directory frontend
+```
+
+Después se abre **Web Preview** en el puerto:
+
+```txt
+8081
+```
+
+Evidencia de funcionamiento:
+
+```txt
+Gastado: $215.50
+Proyectado: $497.31
+Safe to spend: $6402.69
+Presupuesto normal: $6900.00
+```
+
+Esto confirma el flujo:
+
+```txt
+Frontend HTML
+      ↓
+API pública en Cloud Run
+      ↓
+Backend FastAPI
+      ↓
+Cloud SQL MySQL
+      ↓
+Dashboard actualizado
+```
+
+---
+
 ## Flujo de datos con Pub/Sub y BigQuery
 
 Además del backend principal, el proyecto incluye un flujo de datos asíncrono:
@@ -273,9 +363,9 @@ usuario_id | monto | categoria | fecha
 
 El proyecto incluye:
 
-- proyección simple mensual;
-- detección de anomalías usando promedio y desviación estándar;
-- consultas preparadas para BigQuery ML con ARIMA_PLUS.
+* proyección simple mensual;
+* detección de anomalías usando promedio y desviación estándar;
+* consultas preparadas para BigQuery ML con ARIMA_PLUS.
 
 Archivo de consultas:
 
@@ -319,6 +409,8 @@ categoria: emergencia
 motivo: Gasto mayor al promedio + 1 desviación estándar
 ```
 
+Nota: con pocos datos, un gasto extremo puede inflar el promedio y la desviación estándar. En producción conviene usar más historial o métodos más robustos.
+
 ---
 
 ## BigQuery ML
@@ -341,6 +433,17 @@ SELECT
   SUM(monto) AS gasto_diario
 FROM `quincena-final-2026.quincena_analytics.gastos_eventos`
 GROUP BY usuario_id, fecha;
+```
+
+Consulta de pronóstico:
+
+```sql
+SELECT
+  *
+FROM ML.FORECAST(
+  MODEL `quincena-final-2026.quincena_analytics.modelo_gasto_arima`,
+  STRUCT(30 AS horizon, 0.8 AS confidence_level)
+);
 ```
 
 Nota: ARIMA_PLUS necesita más datos históricos para generar pronósticos útiles. En este proyecto se deja como evidencia de integración con BigQuery ML y como base para crecimiento futuro.
@@ -388,13 +491,13 @@ docs/INTEGRANTE_1_BACKEND_DB.md
 
 Incluye:
 
-- FastAPI;
-- endpoints principales;
-- Cloud SQL MySQL;
-- usuario de base de datos;
-- tablas;
-- conexión local;
-- pruebas del backend.
+* FastAPI;
+* endpoints principales;
+* Cloud SQL MySQL;
+* usuario de base de datos;
+* tablas;
+* conexión local;
+* pruebas del backend.
 
 ### Integrante 2 — Cloud / DevOps
 
@@ -404,14 +507,14 @@ docs/INTEGRANTE_2_CLOUD_RUN.md
 
 Incluye:
 
-- Dockerfile;
-- Artifact Registry;
-- Cloud Build;
-- Cloud Run;
-- Secret Manager;
-- conexión Cloud Run a Cloud SQL;
-- permisos IAM;
-- despliegue final.
+* Dockerfile;
+* Artifact Registry;
+* Cloud Build;
+* Cloud Run;
+* Secret Manager;
+* conexión Cloud Run a Cloud SQL;
+* permisos IAM;
+* despliegue final.
 
 ### Integrante 3 — Datos, Pub/Sub y BigQuery ML
 
@@ -421,14 +524,14 @@ docs/INTEGRANTE_3_DATOS_ML.md
 
 Incluye:
 
-- Pub/Sub;
-- worker;
-- Cloud Run Functions;
-- BigQuery;
-- tablas de analítica;
-- pronósticos;
-- anomalías;
-- BigQuery ML.
+* Pub/Sub;
+* worker;
+* Cloud Run Functions;
+* BigQuery;
+* tablas de analítica;
+* pronósticos;
+* anomalías;
+* BigQuery ML.
 
 ### Integrante 4 — Frontend, Demo y Presentación
 
@@ -438,12 +541,14 @@ docs/INTEGRANTE_4_FRONTEND_DEMO.md
 
 Incluye:
 
-- pruebas públicas de la API;
-- registro de gastos;
-- verificación del dashboard;
-- guion de demo;
-- evidencias sugeridas;
-- arquitectura para presentación.
+* pruebas públicas de la API;
+* registro de gastos;
+* verificación del dashboard;
+* frontend visual en `frontend/index.html`;
+* corrección de CORS;
+* guion de demo;
+* evidencias sugeridas;
+* arquitectura para presentación.
 
 ### Índice general de comandos
 
@@ -494,6 +599,18 @@ Ejecutar FastAPI localmente:
 uvicorn main:app --host 0.0.0.0 --port 8080
 ```
 
+Probar el frontend localmente:
+
+```bash
+python3 -m http.server 8081 --directory frontend
+```
+
+Abrir Web Preview en el puerto:
+
+```txt
+8081
+```
+
 ---
 
 ## Cómo desplegar
@@ -512,13 +629,13 @@ bash cloud/deploy.sh
 
 Este script:
 
-- configura el proyecto;
-- activa APIs necesarias;
-- construye la imagen Docker;
-- sube la imagen a Artifact Registry;
-- despliega el servicio en Cloud Run;
-- configura conexión con Cloud SQL;
-- usa Secret Manager para la contraseña.
+* configura el proyecto;
+* activa APIs necesarias;
+* construye la imagen Docker;
+* sube la imagen a Artifact Registry;
+* despliega el servicio en Cloud Run;
+* configura conexión con Cloud SQL;
+* usa Secret Manager para la contraseña.
 
 ---
 
@@ -527,6 +644,7 @@ Este script:
 El proyecto final demuestra:
 
 ```txt
+Frontend HTML funcionando ✅
 Backend con FastAPI ✅
 Base de datos desacoplada con Cloud SQL ✅
 Despliegue serverless con Cloud Run ✅
@@ -558,8 +676,5 @@ gcloud sql instances patch quincena-mysql --activation-policy=ALWAYS
 ```
 
 Otros recursos como Cloud Run, Pub/Sub, BigQuery y Artifact Registry deben revisarse antes de eliminarlos para no perder evidencia del proyecto.
-
-```bash
-gcloud config set project quincena-final-2026
 
 
