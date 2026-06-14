@@ -374,7 +374,17 @@
         const desgloseEl = document.getElementById("desglose");
         desgloseEl.innerHTML = "";
 
-        const categorias = Object.entries(desglose);
+        let categorias = [];
+
+        if (Array.isArray(desglose)) {
+          categorias = desglose.map(item => {
+            const categoria = item.categoria || item.nombre || item.category || "Sin categoría";
+            const monto = item.total || item.monto || item.gastado || item.valor || 0;
+            return [categoria, monto];
+          });
+        } else {
+          categorias = Object.entries(desglose);
+        }
 
         if (categorias.length === 0) {
           desgloseEl.innerHTML = "<li>Sin gastos registrados para este usuario.</li>";
