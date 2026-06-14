@@ -560,6 +560,49 @@ Resume los documentos por integrante y centraliza la referencia de comandos usad
 
 ---
 
+## Cómo probar la aplicación publicada
+
+La aplicación web está publicada con GitHub Pages y puede probarse directamente desde el navegador:
+
+```txt
+https://mario-cloud-prog.github.io/quincena-cloud-final/
+```
+
+No es necesario instalar dependencias ni ejecutar comandos locales para probar la demo.
+
+### Pasos de prueba
+
+1. Abrir el link público de la aplicación.
+2. En la sección **Usuario**, seleccionar un usuario existente o crear uno nuevo.
+3. Registrar un gasto con monto, categoría y fecha.
+4. Revisar que el dashboard actualice:
+
+   * Gastado
+   * Proyectado
+   * Safe to spend
+   * Desglose por categoría
+   * Anomalías
+5. Cambiar a otro usuario para comprobar que los gastos se mantienen separados por `usuario_id`.
+
+### Servicios necesarios
+
+Para que la demo funcione correctamente, deben estar activos:
+
+* GitHub Pages, que publica el frontend.
+* Cloud Run, que ejecuta la API FastAPI.
+* Cloud SQL, que guarda usuarios y gastos.
+
+El frontend publicado consume la API desplegada en Cloud Run:
+
+```txt
+https://quincena-api-533093663517.us-central1.run.app
+```
+
+### Nota sobre la versión demo
+
+La aplicación soporta múltiples usuarios mediante selección o creación de perfiles. Cada usuario tiene sus propios gastos, dashboard y proyección. Sin embargo, esta versión todavía no incluye autenticación con contraseña, por lo que está pensada como demo funcional del proyecto.
+
+
 ## Cómo correr localmente
 
 Entrar a la carpeta del backend:
