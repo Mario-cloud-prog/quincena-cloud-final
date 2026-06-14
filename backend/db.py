@@ -241,3 +241,68 @@ def obtener_dashboard(usuario_id: int):
     finally:
         cursor.close()
         conn.close()
+
+
+def listar_usuarios():
+    """
+    Devuelve todos los usuarios registrados para el modo multiusuario.
+    """
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            """
+            SELECT id, nombre, ingreso_mensual, presupuesto_mensual
+            FROM usuarios
+            ORDER BY id ASC
+            """
+        )
+
+        usuarios = []
+
+        for row in cursor.fetchall():
+            usuarios.append(
+                {
+                    "id": row["id"],
+                    "nombre": row["nombre"],
+                    "ingreso_mensual": decimal_to_float(row["ingreso_mensual"]),
+                    "presupuesto_mensual": decimal_to_float(row["presupuesto_mensual"]),
+                }
+            )
+
+        return usuarios
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def crear_usuario(nombre: str, ingreso_mensual: float, presupuesto_mensual: float):
+    """
+    Crea un usuario nuevo. MySQL asigna el id automáticamente.
+    """
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            """
+            INSERT INTO usuarios (nombre, ingreso_mensual, presupuesto_mensual)
+            VALUES (%s, %s, %s)
+            """,
+            (nombre, ingreso_mensual, presupuesto_mensual),
+        )
+
+        conn.commit()
+
+        return {
+            "id": cursor.lastrowid,
+            "nombre": nombre,
+            "ingreso_mensual": ingreso_mensual,
+            "presupuesto_mensual": presupuesto_mensual,
+        }
+
+    finally:
+        cursor.close()
+        conn.close()

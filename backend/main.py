@@ -18,7 +18,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from db import insertar_gasto, obtener_dashboard
+from db import insertar_gasto, obtener_dashboard, listar_usuarios, crear_usuario
 
 
 app = FastAPI(
@@ -112,6 +112,50 @@ def dashboard(usuario_id: int):
 
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
+
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+
+class UsuarioCreate(BaseModel):
+    """
+    Modelo para crear usuarios desde la web app.
+    """
+
+    nombre: str = Field(..., min_length=1, max_length=100, example="Profesor")
+    ingreso_mensual: float = Field(..., ge=0, example=15000.00)
+    presupuesto_mensual: float = Field(..., ge=0, example=8000.00)
+
+
+@app.get("/usuarios")
+def usuarios():
+    """
+    Lista los usuarios disponibles.
+    """
+    try:
+        return listar_usuarios()
+
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/usuarios")
+def nuevo_usuario(usuario: UsuarioCreate):
+    """
+    Crea un usuario nuevo para separar gastos y proyecciones.
+    """
+    try:
+        usuario_creado = crear_usuario(
+            nombre=usuario.nombre,
+            ingreso_mensual=usuario.ingreso_mensual,
+            presupuesto_mensual=usuario.presupuesto_mensual,
+        )
+
+        return {
+            "message": "Usuario creado correctamente",
+            "usuario": usuario_creado,
+        }
 
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
