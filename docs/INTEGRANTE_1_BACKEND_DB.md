@@ -304,3 +304,45 @@ El Integrante 1 completó:
 * Esquema de base de datos.
 * Código comentado.
 * Pruebas funcionales de `/health`, `/gastos` y `/dashboard`.
+
+* ---
+
+## Soporte multiusuario en backend
+
+Como mejora para permitir que la aplicación pueda ser probada por diferentes usuarios reales, se agregó soporte multiusuario en el backend.
+
+Anteriormente, la demo trabajaba principalmente con un usuario fijo (`usuario_id=1`). Con este cambio, el backend permite listar usuarios existentes y crear usuarios nuevos desde la aplicación web.
+
+### Tabla utilizada
+
+La tabla `usuarios` en Cloud SQL MySQL contiene la información base de cada usuario:
+
+| Campo | Descripción |
+|---|---|
+| `id` | Identificador único del usuario. Se genera automáticamente con `AUTO_INCREMENT`. |
+| `nombre` | Nombre del usuario. |
+| `ingreso_mensual` | Ingreso mensual registrado para el usuario. |
+| `presupuesto_mensual` | Presupuesto mensual usado para calcular proyecciones. |
+| `created_at` | Fecha de creación del usuario. |
+
+Cada gasto se relaciona con un usuario mediante `usuario_id`, por lo que cada persona puede tener sus propios gastos, dashboard y proyección.
+
+### Nuevas funciones en `backend/db.py`
+
+Se agregaron dos funciones para manejar usuarios desde la base de datos:
+
+- `listar_usuarios()`: consulta la tabla `usuarios` y devuelve todos los usuarios disponibles.
+- `crear_usuario(nombre, ingreso_mensual, presupuesto_mensual)`: inserta un usuario nuevo en Cloud SQL. MySQL genera automáticamente el `id`.
+
+### Nuevos endpoints en `backend/main.py`
+
+Se agregaron dos endpoints a la API FastAPI:
+
+#### `GET /usuarios`
+
+Devuelve la lista de usuarios registrados.
+
+Ejemplo:
+
+```bash
+curl https://quincena-api-533093663517.us-central1.run.app/usuarios
