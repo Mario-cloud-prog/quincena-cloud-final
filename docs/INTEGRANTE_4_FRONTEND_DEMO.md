@@ -179,3 +179,92 @@ El Integrante 4 completó:
 - documentación de evidencia de demo;
 - guion de presentación;
 - resumen de arquitectura para explicar el proyecto.
+
+---
+
+---
+
+## Modo multiusuario en frontend
+
+Como mejora final de la demo, el frontend dejó de trabajar con un usuario fijo y ahora permite usar la aplicación con diferentes usuarios reales.
+
+Anteriormente, la web app usaba directamente `usuario_id=1`, por lo que todos los gastos registrados desde la interfaz se guardaban en el mismo usuario demo. Con el cambio multiusuario, el frontend permite seleccionar un usuario existente o crear uno nuevo desde la página web.
+
+### Funcionalidades agregadas
+
+Se agregaron las siguientes funciones en `frontend/index.html`:
+
+| Función             | Descripción                                                           |
+| ------------------- | --------------------------------------------------------------------- |
+| `cargarUsuarios()`  | Consulta `GET /usuarios` para llenar el selector de usuarios.         |
+| `crearUsuario()`    | Envía datos a `POST /usuarios` para crear un usuario nuevo.           |
+| `cargarDashboard()` | Consulta `/dashboard?usuario_id=<id>` usando el usuario seleccionado. |
+| `guardarGasto()`    | Registra gastos usando el `usuario_id` seleccionado.                  |
+
+### Flujo de uso
+
+El flujo para un usuario real es:
+
+1. Abrir la web app publicada en GitHub Pages.
+2. Seleccionar un usuario existente o crear uno nuevo.
+3. Registrar gastos desde el formulario.
+4. Ver el dashboard actualizado con los datos de ese usuario.
+5. Cambiar de usuario para comprobar que los datos están separados.
+
+### Separación de datos
+
+El frontend guarda el usuario seleccionado en `localStorage`, usando la clave:
+
+```js
+quincena_usuario_id
+```
+
+Esto permite que la página recuerde el último usuario usado en el navegador.
+
+Cada vez que se carga el dashboard, el frontend llama al backend con el identificador seleccionado:
+
+```js
+/dashboard?usuario_id=<id>
+```
+
+Y cada vez que se registra un gasto, se envía el campo:
+
+```js
+usuario_id: Number(usuarioIdActual)
+```
+
+De esta forma, el profesor, invitados y usuario demo pueden probar la misma aplicación sin mezclar sus gastos.
+
+### Publicación en GitHub Pages
+
+Después de actualizar `frontend/index.html`, se copió el mismo contenido a:
+
+```txt
+docs/index.html
+```
+
+Esto permite que GitHub Pages publique la versión multiusuario de la app en:
+
+```txt
+https://mario-cloud-prog.github.io/quincena-cloud-final/
+```
+
+### Prueba realizada
+
+Se comprobó que `frontend/index.html` y `docs/index.html` tienen el mismo contenido con:
+
+```bash
+cmp -s frontend/index.html docs/index.html && echo "Son iguales" || echo "Son diferentes"
+```
+
+El resultado fue:
+
+```txt
+Son iguales
+```
+
+También se verificó que la página pública muestra la sección de usuario, permite seleccionar perfiles como `Usuario Demo` y `Profesor`, y registra gastos usando el usuario seleccionado.
+
+### Consideración importante
+
+Esta versión implementa multiusuario para la demo mediante selección de usuario y creación de perfiles, pero todavía no incluye autenticación con contraseña. Para producción, se debería agregar login para evitar que una persona pueda seleccionar o modificar datos de otro usuario.
