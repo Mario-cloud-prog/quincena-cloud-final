@@ -4,100 +4,163 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Quincena - Dashboard Financiero</title>
+
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
+      margin: 0;
       font-family: Arial, sans-serif;
       background: #f4f6f8;
-      margin: 0;
-      padding: 0;
       color: #222;
     }
 
     header {
       background: #1a73e8;
       color: white;
-      padding: 24px;
+      padding: 45px 20px;
       text-align: center;
     }
 
+    header h1 {
+      margin: 0;
+      font-size: 40px;
+    }
+
+    header p {
+      margin-top: 18px;
+      font-size: 18px;
+    }
+
     main {
-      max-width: 1000px;
-      margin: 30px auto;
+      max-width: 1200px;
+      margin: 40px auto;
       padding: 0 20px;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 12px;
+      padding: 28px;
+      margin-bottom: 28px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    }
+
+    .panel h2 {
+      margin-top: 0;
+      font-size: 28px;
     }
 
     .cards {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
+      gap: 18px;
+      margin-bottom: 28px;
     }
 
     .card {
       background: white;
-      padding: 20px;
       border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 24px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
     }
 
     .card h3 {
-      margin-top: 0;
-      color: #555;
-      font-size: 15px;
+      margin: 0 0 16px;
+      font-size: 18px;
+      color: #444;
     }
 
-    .card p {
-      font-size: 28px;
+    .card .value {
+      font-size: 34px;
       font-weight: bold;
-      margin: 8px 0 0;
       color: #1a73e8;
     }
 
-    section {
-      background: white;
-      padding: 22px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      margin-bottom: 24px;
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      font-size: 16px;
     }
 
-    input, button {
-      padding: 10px;
-      margin: 6px 0;
+    input, select {
       width: 100%;
-      box-sizing: border-box;
-      border-radius: 8px;
+      padding: 13px;
       border: 1px solid #ccc;
-      font-size: 15px;
+      border-radius: 8px;
+      font-size: 16px;
     }
 
     button {
+      width: 100%;
+      margin-top: 16px;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
       background: #1a73e8;
       color: white;
-      border: none;
-      cursor: pointer;
+      font-size: 16px;
       font-weight: bold;
+      cursor: pointer;
     }
 
     button:hover {
       background: #1558b0;
     }
 
-    ul {
-      padding-left: 20px;
+    .secondary {
+      background: #34a853;
     }
 
-    .ok {
-      color: green;
+    .secondary:hover {
+      background: #2b8745;
+    }
+
+    .grid-two {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 22px;
+    }
+
+    .status {
+      margin-top: 14px;
       font-weight: bold;
     }
 
+    .ok {
+      color: #188038;
+    }
+
     .error {
-      color: red;
+      color: #d93025;
+    }
+
+    ul {
+      padding-left: 22px;
+    }
+
+    li {
+      margin: 8px 0;
+    }
+
+    .muted {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .selected-user {
+      margin-top: 10px;
+      padding: 12px;
+      background: #eef4ff;
+      border-radius: 8px;
+      color: #174ea6;
       font-weight: bold;
     }
   </style>
 </head>
+
 <body>
   <header>
     <h1>Quincena</h1>
@@ -105,145 +168,348 @@
   </header>
 
   <main>
-    <div class="cards">
+    <section class="panel">
+      <h2>Usuario</h2>
+      <p class="muted">
+        Selecciona tu usuario o crea uno nuevo. Cada usuario tiene sus propios gastos y proyección.
+      </p>
+
+      <label for="usuarioSelect">Seleccionar usuario</label>
+      <select id="usuarioSelect">
+        <option value="">Cargando usuarios...</option>
+      </select>
+
+      <div id="usuarioActual" class="selected-user">
+        Usuario actual: no seleccionado
+      </div>
+
+      <div class="grid-two">
+        <div>
+          <h3>Crear usuario nuevo</h3>
+
+          <label for="nombreUsuario">Nombre</label>
+          <input id="nombreUsuario" type="text" placeholder="Ej. Profesor, Mario, Invitado" />
+
+          <label for="ingresoMensual">Ingreso mensual</label>
+          <input id="ingresoMensual" type="number" step="0.01" placeholder="Ej. 15000" />
+
+          <label for="presupuestoMensual">Presupuesto mensual</label>
+          <input id="presupuestoMensual" type="number" step="0.01" placeholder="Ej. 8000" />
+
+          <button class="secondary" onclick="crearUsuario()">Crear usuario</button>
+          <div id="usuarioStatus" class="status"></div>
+        </div>
+
+        <div>
+          <h3>Prueba recomendada</h3>
+          <p>
+            Para que el profesor pruebe la app, puede crear su propio usuario, seleccionarlo y registrar gastos.
+          </p>
+          <p>
+            El dashboard se actualizará usando el <strong>usuario_id</strong> seleccionado.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="cards">
       <div class="card">
         <h3>Gastado</h3>
-        <p id="gastado">$0</p>
+        <div id="gastado" class="value">$0.00</div>
       </div>
 
       <div class="card">
         <h3>Proyectado</h3>
-        <p id="proyectado">$0</p>
+        <div id="proyectado" class="value">$0.00</div>
       </div>
 
       <div class="card">
         <h3>Safe to spend</h3>
-        <p id="safe">$0</p>
+        <div id="safeToSpend" class="value">$0.00</div>
       </div>
 
       <div class="card">
         <h3>Presupuesto normal</h3>
-        <p id="normal">$0</p>
+        <div id="presupuestoNormal" class="value">$0.00</div>
       </div>
-    </div>
+    </section>
 
-    <section>
+    <section class="panel">
       <h2>Registrar gasto</h2>
 
-      <label>Monto</label>
+      <label for="monto">Monto</label>
       <input id="monto" type="number" step="0.01" placeholder="Ej. 120.50" />
 
-      <label>Categoría</label>
+      <label for="categoria">Categoría</label>
       <input id="categoria" type="text" placeholder="Ej. comida, transporte, café" />
 
-      <label>Fecha</label>
+      <label for="fecha">Fecha</label>
       <input id="fecha" type="date" />
 
-      <button onclick="registrarGasto()">Guardar gasto</button>
-
-      <p id="mensaje"></p>
+      <button onclick="guardarGasto()">Guardar gasto</button>
+      <div id="gastoStatus" class="status"></div>
     </section>
 
-    <section>
-      <h2>Desglose por categoría</h2>
-      <ul id="desglose"></ul>
-    </section>
+    <section class="grid-two">
+      <div class="panel">
+        <h2>Desglose por categoría</h2>
+        <ul id="desglose">
+          <li>Sin datos todavía.</li>
+        </ul>
+      </div>
 
-    <section>
-      <h2>Anomalías</h2>
-      <ul id="anomalias"></ul>
-    </section>
-
-    <section>
-      <button onclick="cargarDashboard()">Actualizar dashboard</button>
+      <div class="panel">
+        <h2>Anomalías</h2>
+        <ul id="anomalias">
+          <li>Sin anomalías detectadas.</li>
+        </ul>
+      </div>
     </section>
   </main>
 
   <script>
     const API_URL = "https://quincena-api-533093663517.us-central1.run.app";
-    const USUARIO_ID = 1;
 
-    function formatoMoneda(valor) {
-      return "$" + Number(valor).toFixed(2);
+    let usuarios = [];
+    let usuarioIdActual = localStorage.getItem("quincena_usuario_id") || "";
+
+    function formatoDinero(valor) {
+      const numero = Number(valor || 0);
+      return "$" + numero.toFixed(2);
     }
 
-    async function cargarDashboard() {
-      const respuesta = await fetch(`${API_URL}/dashboard?usuario_id=${USUARIO_ID}`);
-      const data = await respuesta.json();
-
-      document.getElementById("gastado").textContent = formatoMoneda(data.gastado);
-      document.getElementById("proyectado").textContent = formatoMoneda(data.proyectado);
-      document.getElementById("safe").textContent = formatoMoneda(data.safe_to_spend);
-      document.getElementById("normal").textContent = formatoMoneda(data.normal_mensual);
-
-      const desglose = document.getElementById("desglose");
-      desglose.innerHTML = "";
-
-      data.desglose.forEach(item => {
-        const li = document.createElement("li");
-        li.textContent = `${item.categoria}: ${formatoMoneda(item.total)}`;
-        desglose.appendChild(li);
-      });
-
-      const anomalias = document.getElementById("anomalias");
-      anomalias.innerHTML = "";
-
-      if (data.anomalias.length === 0) {
-        const li = document.createElement("li");
-        li.textContent = "No hay anomalías detectadas.";
-        anomalias.appendChild(li);
-      } else {
-        data.anomalias.forEach(item => {
-          const li = document.createElement("li");
-          li.textContent = `${item.categoria}: ${formatoMoneda(item.monto)} (${item.fecha})`;
-          anomalias.appendChild(li);
-        });
-      }
+    function setStatus(elementId, mensaje, tipo) {
+      const el = document.getElementById(elementId);
+      el.textContent = mensaje;
+      el.className = "status " + tipo;
     }
 
-    async function registrarGasto() {
-      const monto = document.getElementById("monto").value;
-      const categoria = document.getElementById("categoria").value;
-      const fecha = document.getElementById("fecha").value;
-      const mensaje = document.getElementById("mensaje");
+    function limpiarDashboard() {
+      document.getElementById("gastado").textContent = "$0.00";
+      document.getElementById("proyectado").textContent = "$0.00";
+      document.getElementById("safeToSpend").textContent = "$0.00";
+      document.getElementById("presupuestoNormal").textContent = "$0.00";
+      document.getElementById("desglose").innerHTML = "<li>Sin datos todavía.</li>";
+      document.getElementById("anomalias").innerHTML = "<li>Sin anomalías detectadas.</li>";
+    }
 
-      if (!monto || !categoria || !fecha) {
-        mensaje.textContent = "Completa monto, categoría y fecha.";
-        mensaje.className = "error";
+    function actualizarTextoUsuarioActual() {
+      const usuario = usuarios.find(u => String(u.id) === String(usuarioIdActual));
+      const el = document.getElementById("usuarioActual");
+
+      if (!usuario) {
+        el.textContent = "Usuario actual: no seleccionado";
         return;
       }
 
-      const respuesta = await fetch(`${API_URL}/gastos`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          usuario_id: USUARIO_ID,
-          monto: Number(monto),
-          categoria: categoria,
-          fecha: fecha
-        })
-      });
+      el.textContent = `Usuario actual: ${usuario.nombre} (id ${usuario.id})`;
+    }
 
-      const data = await respuesta.json();
+    async function cargarUsuarios() {
+      try {
+        const response = await fetch(`${API_URL}/usuarios`);
 
-      if (respuesta.ok) {
-        mensaje.textContent = data.message || "Gasto registrado correctamente.";
-        mensaje.className = "ok";
+        if (!response.ok) {
+          throw new Error("No se pudieron cargar los usuarios.");
+        }
+
+        usuarios = await response.json();
+
+        const select = document.getElementById("usuarioSelect");
+        select.innerHTML = "";
+
+        if (usuarios.length === 0) {
+          select.innerHTML = "<option value=''>No hay usuarios. Crea uno nuevo.</option>";
+          limpiarDashboard();
+          return;
+        }
+
+        for (const usuario of usuarios) {
+          const option = document.createElement("option");
+          option.value = usuario.id;
+          option.textContent = `${usuario.nombre} - Presupuesto ${formatoDinero(usuario.presupuesto_mensual)}`;
+          select.appendChild(option);
+        }
+
+        const existeUsuarioGuardado = usuarios.some(u => String(u.id) === String(usuarioIdActual));
+
+        if (!usuarioIdActual || !existeUsuarioGuardado) {
+          usuarioIdActual = String(usuarios[0].id);
+          localStorage.setItem("quincena_usuario_id", usuarioIdActual);
+        }
+
+        select.value = usuarioIdActual;
+        actualizarTextoUsuarioActual();
+        await cargarDashboard();
+
+      } catch (error) {
+        console.error(error);
+        document.getElementById("usuarioSelect").innerHTML = "<option value=''>Error cargando usuarios</option>";
+        setStatus("usuarioStatus", "Error cargando usuarios. Revisa que Cloud Run y Cloud SQL estén activos.", "error");
+      }
+    }
+
+    async function cargarDashboard() {
+      if (!usuarioIdActual) {
+        limpiarDashboard();
+        actualizarTextoUsuarioActual();
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/dashboard?usuario_id=${usuarioIdActual}`);
+
+        if (!response.ok) {
+          throw new Error("No se pudo cargar el dashboard.");
+        }
+
+        const data = await response.json();
+
+        document.getElementById("gastado").textContent = formatoDinero(data.gastado);
+        document.getElementById("proyectado").textContent = formatoDinero(data.proyectado);
+        document.getElementById("safeToSpend").textContent = formatoDinero(data.safe_to_spend);
+        document.getElementById("presupuestoNormal").textContent = formatoDinero(data.normal_mensual);
+
+        const desglose = data.desglose || data.desglose_por_categoria || {};
+        const desgloseEl = document.getElementById("desglose");
+        desgloseEl.innerHTML = "";
+
+        const categorias = Object.entries(desglose);
+
+        if (categorias.length === 0) {
+          desgloseEl.innerHTML = "<li>Sin gastos registrados para este usuario.</li>";
+        } else {
+          for (const [categoria, monto] of categorias) {
+            const li = document.createElement("li");
+            li.textContent = `${categoria}: ${formatoDinero(monto)}`;
+            desgloseEl.appendChild(li);
+          }
+        }
+
+        const anomalias = data.anomalias || [];
+        const anomaliasEl = document.getElementById("anomalias");
+        anomaliasEl.innerHTML = "";
+
+        if (anomalias.length === 0) {
+          anomaliasEl.innerHTML = "<li>Sin anomalías detectadas.</li>";
+        } else {
+          for (const anomalia of anomalias) {
+            const li = document.createElement("li");
+            li.textContent = typeof anomalia === "string" ? anomalia : JSON.stringify(anomalia);
+            anomaliasEl.appendChild(li);
+          }
+        }
+
+      } catch (error) {
+        console.error(error);
+        setStatus("gastoStatus", "Error cargando dashboard. Revisa backend y base de datos.", "error");
+      }
+    }
+
+    async function crearUsuario() {
+      const nombre = document.getElementById("nombreUsuario").value.trim();
+      const ingreso = Number(document.getElementById("ingresoMensual").value);
+      const presupuesto = Number(document.getElementById("presupuestoMensual").value);
+
+      if (!nombre || ingreso < 0 || presupuesto < 0 || Number.isNaN(ingreso) || Number.isNaN(presupuesto)) {
+        setStatus("usuarioStatus", "Completa nombre, ingreso mensual y presupuesto mensual.", "error");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/usuarios`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            nombre: nombre,
+            ingreso_mensual: ingreso,
+            presupuesto_mensual: presupuesto
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error("No se pudo crear el usuario.");
+        }
+
+        const data = await response.json();
+        const nuevoUsuario = data.usuario;
+
+        usuarioIdActual = String(nuevoUsuario.id);
+        localStorage.setItem("quincena_usuario_id", usuarioIdActual);
+
+        document.getElementById("nombreUsuario").value = "";
+        document.getElementById("ingresoMensual").value = "";
+        document.getElementById("presupuestoMensual").value = "";
+
+        setStatus("usuarioStatus", `Usuario creado correctamente: ${nuevoUsuario.nombre}`, "ok");
+
+        await cargarUsuarios();
+
+      } catch (error) {
+        console.error(error);
+        setStatus("usuarioStatus", "Error creando usuario. Revisa la API.", "error");
+      }
+    }
+
+    async function guardarGasto() {
+      if (!usuarioIdActual) {
+        setStatus("gastoStatus", "Primero selecciona o crea un usuario.", "error");
+        return;
+      }
+
+      const monto = Number(document.getElementById("monto").value);
+      const categoria = document.getElementById("categoria").value.trim();
+      const fecha = document.getElementById("fecha").value;
+
+      if (!monto || monto <= 0 || !categoria || !fecha) {
+        setStatus("gastoStatus", "Completa monto, categoría y fecha.", "error");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/gastos`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            usuario_id: Number(usuarioIdActual),
+            monto: monto,
+            categoria: categoria,
+            fecha: fecha
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error("No se pudo guardar el gasto.");
+        }
 
         document.getElementById("monto").value = "";
         document.getElementById("categoria").value = "";
 
+        setStatus("gastoStatus", "Gasto guardado correctamente.", "ok");
+
         await cargarDashboard();
-      } else {
-        mensaje.textContent = "Error al registrar gasto.";
-        mensaje.className = "error";
+
+      } catch (error) {
+        console.error(error);
+        setStatus("gastoStatus", "Error guardando gasto. Revisa la API.", "error");
       }
     }
 
+    document.getElementById("usuarioSelect").addEventListener("change", async (event) => {
+      usuarioIdActual = event.target.value;
+      localStorage.setItem("quincena_usuario_id", usuarioIdActual);
+      actualizarTextoUsuarioActual();
+      setStatus("gastoStatus", "", "");
+      await cargarDashboard();
+    });
+
     document.getElementById("fecha").valueAsDate = new Date();
-    cargarDashboard();
+
+    cargarUsuarios();
   </script>
 </body>
 </html>
