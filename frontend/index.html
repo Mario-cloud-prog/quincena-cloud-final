@@ -405,7 +405,17 @@
         } else {
           for (const anomalia of anomalias) {
             const li = document.createElement("li");
-            li.textContent = typeof anomalia === "string" ? anomalia : JSON.stringify(anomalia);
+
+            if (typeof anomalia === "string") {
+              li.textContent = anomalia;
+            } else {
+              const categoria = anomalia.categoria || anomalia.category || "Sin categoría";
+              const monto = anomalia.monto || anomalia.total || anomalia.valor || 0;
+              const fecha = anomalia.fecha || anomalia.date || "Sin fecha";
+
+              li.textContent = `${categoria}: ${formatoDinero(monto)} — ${fecha}`;
+            }
+
             anomaliasEl.appendChild(li);
           }
         }
