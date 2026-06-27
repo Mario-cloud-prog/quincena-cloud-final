@@ -14,7 +14,8 @@ Mantener estable el contrato de datos del backend.
 
 from datetime import date
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, EmailStr
 
@@ -25,9 +26,11 @@ from db import (
     crear_usuario,
     registrar_usuario,
     buscar_usuario_por_email,
+    listar_usuarios_admin,
+    cambiar_estado_usuario,
 )
 from seguridad import verificar_password
-from auth import crear_token
+from auth import crear_token, verificar_token
 
 
 app = FastAPI(
@@ -44,6 +47,42 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# Esquema de seguridad: indica a FastAPI que estos endpoints esperan
+# un header "Authorization: Bearer <token>". Tambien hace que la
+# documentacion automatica (/docs) muestre el candado para meter el token.
+bearer_scheme = HTTPBearer()
+
+
+def obtener_admin(credenciales: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+    """
+    Dependencia que protege los endpoints de administrador.
+
+    Funciona como un guardia en la puerta: se ejecuta ANTES del endpoint.
+    1. FastAPI extrae el token del header Authorization (gracias a bearer_scheme).
+    2. Verificamos el token con verificar_token (firma + expiracion).
+    3. Exigimos que el rol sea 'admin'.
+
+    Si algo falla, lanzamos 401 (token invalido/expirado) o 403 (no es admin),
+    y el endpoint protegido nunca llega a ejecutarse.
+
+    Devuelve los datos del admin (usuario_id, rol) por si el endpoint los necesita.
+    """
+    token = credenciales.credentials
+
+    try:
+        datos = verificar_token(token)
+    except ValueError as exc:
+        # Token alterado o expirado.
+        raise HTTPException(status_code=401, detail=str(exc))
+
+    if datos.get("rol") != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Se requieren permisos de administrador",
+        )
+
+    return datos
 
 
 class GastoCreate(BaseModel):
@@ -286,6 +325,94 @@ def login(datos: LoginRequest):
     except HTTPException:
         # Re-lanzamos los errores HTTP que nosotros mismos generamos arriba,
         # para que no los atrape el except genérico de abajo.
+        raise
+
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+
+# ---------------------------------------------------------------------------
+# Endpoints de administrador
+#
+# Todos exigen un token JWT de un usuario con rol 'admin', verificado por la
+# dependencia obtener_admin. Permiten ver el padron de usuarios y aprobar o
+# desactivar cuentas sin entrar a la base de datos a mano.
+# ---------------------------------------------------------------------------
+
+
+@app.get("/admin/usuarios")
+def admin_listar_usuarios(admin: dict = Depends(obtener_admin)):
+    """
+    Lista todos los usuarios con su estado y rol.
+
+    Pensado para que el admin vea quien esta pendiente de aprobacion.
+    Protegido: requiere token de admin.
+    """
+    try:
+        return listar_usuarios_admin()
+
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/admin/usuarios/{usuario_id}/aprobar")
+def admin_aprobar_usuario(usuario_id: int, admin: dict = Depends(obtener_admin)):
+    """
+    Aprueba a un usuario: cambia su estado a 'aprobado'.
+
+    A partir de aqui ese usuario ya puede iniciar sesion.
+    Protegido: requiere token de admin.
+    """
+    try:
+        usuario = cambiar_estado_usuario(usuario_id, "aprobado")
+
+        if usuario is None:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+        return {
+            "message": "Usuario aprobado",
+            "usuario": usuario,
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/admin/usuarios/{usuario_id}/desactivar")
+def admin_desactivar_usuario(usuario_id: int, admin: dict = Depends(obtener_admin)):
+    """
+    Desactiva a un usuario: cambia su estado a 'desactivado'.
+
+    El usuario deja de poder iniciar sesion, pero conserva su historial de
+    gastos (no se borra nada). Es reversible: se puede volver a aprobar.
+
+    Salvaguarda: un admin NO puede desactivarse a si mismo, para evitar
+    quedarse sin acceso al control de la aplicacion.
+    Protegido: requiere token de admin.
+    """
+    try:
+        # admin["usuario_id"] viene del token verificado en obtener_admin.
+        if usuario_id == admin["usuario_id"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Un administrador no puede desactivarse a si mismo",
+            )
+
+        usuario = cambiar_estado_usuario(usuario_id, "desactivado")
+
+        if usuario is None:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+        return {
+            "message": "Usuario desactivado",
+            "usuario": usuario,
+        }
+
+    except HTTPException:
         raise
 
     except Exception as exc:

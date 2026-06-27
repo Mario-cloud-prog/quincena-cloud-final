@@ -389,3 +389,71 @@ def buscar_usuario_por_email(email: str):
     finally:
         cursor.close()
         conn.close()
+
+
+def listar_usuarios_admin():
+    """
+    Lista todos los usuarios con los campos que un admin necesita para
+    gestionarlos: id, nombre, email, rol y estado.
+
+    A diferencia de listar_usuarios() (pensada para la demo multiusuario),
+    esta incluye email, rol y estado, pero NUNCA el password_hash.
+    """
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            """
+            SELECT id, nombre, email, rol, estado
+            FROM usuarios
+            ORDER BY id ASC
+            """
+        )
+        return cursor.fetchall()
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def cambiar_estado_usuario(usuario_id: int, nuevo_estado: str):
+    """
+    Cambia el estado de un usuario (aprobado / desactivado / pendiente).
+
+    Devuelve el usuario actualizado (id, nombre, email, estado) o None si
+    no existe ningún usuario con ese id.
+
+    La validación de que 'nuevo_estado' sea un valor permitido se hace en la
+    capa del endpoint; aquí confiamos en que llega un valor válido del ENUM.
+    """
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            """
+            UPDATE usuarios
+            SET estado = %s
+            WHERE id = %s
+            """,
+            (nuevo_estado, usuario_id),
+        )
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            return None
+
+        cursor.execute(
+            """
+            SELECT id, nombre, email, estado
+            FROM usuarios
+            WHERE id = %s
+            """,
+            (usuario_id,),
+        )
+        return cursor.fetchone()
+
+    finally:
+        cursor.close()
+        conn.close()
