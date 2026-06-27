@@ -17,7 +17,9 @@ import calendar
 
 from dotenv import load_dotenv
 import mysql.connector
-from mysql.connector import Error
+from mysql.connector import Error, errorcode
+
+from seguridad import hashear_password
 
 
 load_dotenv()
@@ -302,6 +304,57 @@ def crear_usuario(nombre: str, ingreso_mensual: float, presupuesto_mensual: floa
             "ingreso_mensual": ingreso_mensual,
             "presupuesto_mensual": presupuesto_mensual,
         }
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def registrar_usuario(nombre: str, email: str, password: str,
+                      ingreso_mensual: float, presupuesto_mensual: float):
+    """
+    Registra un usuario nuevo con email único y contraseña hasheada.
+
+    El usuario nace en estado 'pendiente' y rol 'usuario' (defaults del esquema).
+    No puede iniciar sesión hasta que un admin lo apruebe.
+
+    El email se normaliza (minúsculas, sin espacios) antes de guardar para
+    evitar cuentas duplicadas del tipo 'Mario@x.com' vs 'mario@x.com'.
+
+    La contraseña nunca se guarda en claro: se almacena solo el hash bcrypt.
+    """
+    email_norm = email.strip().lower()
+    password_hash = hashear_password(password)
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            """
+            INSERT INTO usuarios
+                (nombre, email, password_hash, ingreso_mensual, presupuesto_mensual)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (nombre, email_norm, password_hash, ingreso_mensual, presupuesto_mensual),
+        )
+
+        conn.commit()
+
+        return {
+            "id": cursor.lastrowid,
+            "nombre": nombre,
+            "email": email_norm,
+            "estado": "pendiente",
+        }
+
+    except mysql.connector.IntegrityError as exc:
+        # Error 1062 = entrada duplicada. Como email es UNIQUE, esto significa
+        # que el correo ya está registrado. Lo traducimos a un mensaje claro
+        # para que el endpoint devuelva 409 en vez de un 500 con el error crudo.
+        if exc.errno == errorcode.ER_DUP_ENTRY:
+            raise ValueError("Ese correo ya está registrado") from exc
+        raise
 
     finally:
         cursor.close()

@@ -16,9 +16,15 @@ from datetime import date
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 
-from db import insertar_gasto, obtener_dashboard, listar_usuarios, crear_usuario
+from db import (
+    insertar_gasto,
+    obtener_dashboard,
+    listar_usuarios,
+    crear_usuario,
+    registrar_usuario,
+)
 
 
 app = FastAPI(
@@ -156,6 +162,63 @@ def nuevo_usuario(usuario: UsuarioCreate):
             "message": "Usuario creado correctamente",
             "usuario": usuario_creado,
         }
+
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+
+class RegistroCreate(BaseModel):
+    """
+    Modelo de entrada para registrar un usuario con autenticación.
+
+    A diferencia de UsuarioCreate (que crea perfiles sin contraseña para la
+    demo multiusuario), este modelo exige email y contraseña.
+
+    Validaciones automáticas de Pydantic:
+    - email: debe tener forma válida de correo (EmailStr).
+    - password: entre 8 y 72 caracteres. El tope de 72 existe porque bcrypt
+      solo usa los primeros 72 bytes; pedir más sería engañoso.
+    """
+
+    nombre: str = Field(..., min_length=1, max_length=100, example="Mario")
+    email: EmailStr = Field(..., example="mario@ejemplo.com")
+    password: str = Field(..., min_length=8, max_length=72, example="contrasena123")
+    ingreso_mensual: float = Field(..., ge=0, example=15000.00)
+    presupuesto_mensual: float = Field(..., ge=0, example=8000.00)
+
+
+@app.post("/registro")
+def registro(datos: RegistroCreate):
+    """
+    Registra un usuario nuevo con email único y contraseña hasheada.
+
+    El usuario queda en estado 'pendiente' y NO puede iniciar sesión hasta
+    que un administrador lo apruebe. Esto da control sobre quién accede.
+
+    Respuestas:
+    - 200: usuario registrado, queda pendiente de aprobación.
+    - 409: el correo ya está registrado.
+    - 422: el JSON no cumple el formato (email inválido, password corta, etc.).
+           Lo maneja Pydantic automáticamente.
+    """
+    try:
+        usuario_creado = registrar_usuario(
+            nombre=datos.nombre,
+            email=datos.email,
+            password=datos.password,
+            ingreso_mensual=datos.ingreso_mensual,
+            presupuesto_mensual=datos.presupuesto_mensual,
+        )
+
+        return {
+            "message": "Usuario registrado. Queda pendiente de aprobación por un administrador.",
+            "usuario": usuario_creado,
+        }
+
+    except ValueError as exc:
+        # registrar_usuario lanza ValueError cuando el correo ya existe.
+        raise HTTPException(status_code=409, detail=str(exc))
 
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
