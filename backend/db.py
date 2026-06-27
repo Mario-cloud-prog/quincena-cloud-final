@@ -359,3 +359,33 @@ def registrar_usuario(nombre: str, email: str, password: str,
     finally:
         cursor.close()
         conn.close()
+
+
+def buscar_usuario_por_email(email: str):
+    """
+    Busca un usuario por su email y devuelve los campos necesarios para login:
+    id, rol, estado y password_hash. Devuelve None si no existe.
+
+    A diferencia de listar_usuarios(), esta función SÍ trae el password_hash,
+    porque el login necesita compararlo. Ese hash se usa solo para verificar
+    y nunca se devuelve al cliente.
+    """
+    email_norm = email.strip().lower()
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            """
+            SELECT id, rol, estado, password_hash
+            FROM usuarios
+            WHERE email = %s
+            """,
+            (email_norm,),
+        )
+        return cursor.fetchone()
+
+    finally:
+        cursor.close()
+        conn.close()

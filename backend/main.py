@@ -24,7 +24,10 @@ from db import (
     listar_usuarios,
     crear_usuario,
     registrar_usuario,
+    buscar_usuario_por_email,
 )
+from seguridad import verificar_password
+from auth import crear_token
 
 
 app = FastAPI(
@@ -219,6 +222,71 @@ def registro(datos: RegistroCreate):
     except ValueError as exc:
         # registrar_usuario lanza ValueError cuando el correo ya existe.
         raise HTTPException(status_code=409, detail=str(exc))
+
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+
+class LoginRequest(BaseModel):
+    """
+    Modelo de entrada para iniciar sesión.
+
+    Solo pide lo mínimo: email y password. No valida longitud de password
+    aquí a propósito (eso es cosa del registro); en login solo comparamos.
+    """
+
+    email: EmailStr = Field(..., example="mario@ejemplo.com")
+    password: str = Field(..., example="contrasena123")
+
+
+@app.post("/login")
+def login(datos: LoginRequest):
+    """
+    Autentica a un usuario y devuelve un token JWT si todo es correcto.
+
+    Lógica:
+    1. Busca el usuario por email. Si no existe -> 401 genérico.
+    2. Verifica el password con bcrypt. Si no coincide -> 401 genérico.
+       (Mismo mensaje en ambos casos para no revelar si el email existe.)
+    3. Revisa el estado. Si no es 'aprobado' -> 403.
+    4. Si todo bien -> genera y devuelve un JWT.
+
+    El token devuelto se usa en las demás peticiones como prueba de identidad,
+    sin volver a mandar el password.
+    """
+    try:
+        usuario = buscar_usuario_por_email(datos.email)
+
+        # Paso 1 y 2: usuario inexistente o password incorrecto.
+        # Respondemos lo mismo en ambos casos a propósito (no revelar cuál falló).
+        if usuario is None or not usuario.get("password_hash"):
+            raise HTTPException(status_code=401, detail="Credenciales inválidas")
+
+        if not verificar_password(datos.password, usuario["password_hash"]):
+            raise HTTPException(status_code=401, detail="Credenciales inválidas")
+
+        # Paso 3: el password es correcto, pero el acceso depende del estado.
+        if usuario["estado"] != "aprobado":
+            if usuario["estado"] == "pendiente":
+                detalle = "Tu cuenta está pendiente de aprobación por un administrador"
+            else:
+                detalle = "Tu cuenta está desactivada"
+            raise HTTPException(status_code=403, detail=detalle)
+
+        # Paso 4: todo en orden, emitimos el token.
+        token = crear_token(usuario_id=usuario["id"], rol=usuario["rol"])
+
+        return {
+            "access_token": token,
+            "token_type": "bearer",
+            "rol": usuario["rol"],
+        }
+
+    except HTTPException:
+        # Re-lanzamos los errores HTTP que nosotros mismos generamos arriba,
+        # para que no los atrape el except genérico de abajo.
+        raise
 
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
