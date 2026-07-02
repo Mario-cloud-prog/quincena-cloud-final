@@ -158,120 +158,294 @@
       color: #174ea6;
       font-weight: bold;
     }
+
+    /* Pantalla de login */
+    .login-wrap {
+      max-width: 420px;
+      margin: 80px auto;
+      padding: 0 20px;
+    }
+
+    .login-card {
+      background: white;
+      border-radius: 12px;
+      padding: 36px 32px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+      text-align: center;
+    }
+
+    .login-card h1 {
+      margin: 0 0 6px;
+      font-size: 34px;
+      color: #1a73e8;
+    }
+
+    .login-card p.sub {
+      margin: 0 0 24px;
+      color: #666;
+      font-size: 15px;
+    }
+
+    .login-card label {
+      text-align: left;
+    }
+
+    /* Barra de sesión dentro de la app */
+    .session-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .session-bar .selected-user {
+      margin: 0;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .session-bar button {
+      width: auto;
+      margin: 0;
+      padding: 10px 20px;
+      background: #5f6368;
+    }
+
+    .session-bar button:hover {
+      background: #494c50;
+    }
   </style>
 </head>
 
 <body>
-  <header>
-    <h1>Quincena</h1>
-    <p>Dashboard financiero conectado a Google Cloud</p>
-  </header>
 
-  <main>
-    <section class="panel">
-      <h2>Usuario</h2>
-      <p class="muted">
-        Selecciona tu usuario o crea uno nuevo. Cada usuario tiene sus propios gastos y proyección.
-      </p>
+  <!-- ================== PANTALLA DE LOGIN ================== -->
+  <div id="loginScreen" class="login-wrap">
+    <div class="login-card">
+      <h1>Quincena</h1>
+      <p class="sub">Inicia sesión para ver tu dashboard financiero</p>
 
-      <label for="usuarioSelect">Seleccionar usuario</label>
-      <select id="usuarioSelect">
-        <option value="">Cargando usuarios...</option>
-      </select>
+      <label for="loginEmail">Correo</label>
+      <input id="loginEmail" type="email" placeholder="tucorreo@ejemplo.com" autocomplete="username" />
 
-      <div id="usuarioActual" class="selected-user">
-        Usuario actual: no seleccionado
-      </div>
+      <label for="loginPassword">Contraseña</label>
+      <input id="loginPassword" type="password" placeholder="Tu contraseña" autocomplete="current-password" />
 
-      <div class="grid-two">
-        <div>
-          <h3>Crear usuario nuevo</h3>
+      <button onclick="login()">Entrar</button>
+      <div id="loginStatus" class="status"></div>
+    </div>
+  </div>
 
-          <label for="nombreUsuario">Nombre</label>
-          <input id="nombreUsuario" type="text" placeholder="Ej. Profesor, Mario, Invitado" />
+  <!-- ================== APLICACIÓN (oculta hasta login) ================== -->
+  <div id="appScreen" style="display: none;">
+    <header>
+      <h1>Quincena</h1>
+      <p>Dashboard financiero conectado a Google Cloud</p>
+    </header>
 
-          <label for="ingresoMensual">Ingreso mensual</label>
-          <input id="ingresoMensual" type="number" step="0.01" placeholder="Ej. 15000" />
+    <main>
+      <section class="panel">
+        <div class="session-bar">
+          <div id="usuarioActual" class="selected-user">
+            Sesión activa
+          </div>
+          <button onclick="logout()">Cerrar sesión</button>
+        </div>
+      </section>
 
-          <label for="presupuestoMensual">Presupuesto mensual</label>
-          <input id="presupuestoMensual" type="number" step="0.01" placeholder="Ej. 8000" />
-
-          <button class="secondary" onclick="crearUsuario()">Crear usuario</button>
-          <div id="usuarioStatus" class="status"></div>
+      <section class="cards">
+        <div class="card">
+          <h3>Gastado</h3>
+          <div id="gastado" class="value">$0.00</div>
         </div>
 
-        <div>
-          <h3>Prueba recomendada</h3>
-          <p>
-            Para que el profesor pruebe la app, puede crear su propio usuario, seleccionarlo y registrar gastos.
-          </p>
-          <p>
-            El dashboard se actualizará usando el <strong>usuario_id</strong> seleccionado.
-          </p>
+        <div class="card">
+          <h3>Proyectado</h3>
+          <div id="proyectado" class="value">$0.00</div>
         </div>
-      </div>
-    </section>
 
-    <section class="cards">
-      <div class="card">
-        <h3>Gastado</h3>
-        <div id="gastado" class="value">$0.00</div>
-      </div>
+        <div class="card">
+          <h3>Safe to spend</h3>
+          <div id="safeToSpend" class="value">$0.00</div>
+        </div>
 
-      <div class="card">
-        <h3>Proyectado</h3>
-        <div id="proyectado" class="value">$0.00</div>
-      </div>
+        <div class="card">
+          <h3>Presupuesto normal</h3>
+          <div id="presupuestoNormal" class="value">$0.00</div>
+        </div>
+      </section>
 
-      <div class="card">
-        <h3>Safe to spend</h3>
-        <div id="safeToSpend" class="value">$0.00</div>
-      </div>
+      <section class="panel">
+        <h2>Registrar gasto</h2>
 
-      <div class="card">
-        <h3>Presupuesto normal</h3>
-        <div id="presupuestoNormal" class="value">$0.00</div>
-      </div>
-    </section>
+        <label for="monto">Monto</label>
+        <input id="monto" type="number" step="0.01" placeholder="Ej. 120.50" />
 
-    <section class="panel">
-      <h2>Registrar gasto</h2>
+        <label for="categoria">Categoría</label>
+        <input id="categoria" type="text" placeholder="Ej. comida, transporte, café" />
 
-      <label for="monto">Monto</label>
-      <input id="monto" type="number" step="0.01" placeholder="Ej. 120.50" />
+        <label for="fecha">Fecha</label>
+        <input id="fecha" type="date" />
 
-      <label for="categoria">Categoría</label>
-      <input id="categoria" type="text" placeholder="Ej. comida, transporte, café" />
+        <button onclick="guardarGasto()">Guardar gasto</button>
+        <div id="gastoStatus" class="status"></div>
+      </section>
 
-      <label for="fecha">Fecha</label>
-      <input id="fecha" type="date" />
+      <section class="grid-two">
+        <div class="panel">
+          <h2>Desglose por categoría</h2>
+          <ul id="desglose">
+            <li>Sin datos todavía.</li>
+          </ul>
+        </div>
 
-      <button onclick="guardarGasto()">Guardar gasto</button>
-      <div id="gastoStatus" class="status"></div>
-    </section>
-
-    <section class="grid-two">
-      <div class="panel">
-        <h2>Desglose por categoría</h2>
-        <ul id="desglose">
-          <li>Sin datos todavía.</li>
-        </ul>
-      </div>
-
-      <div class="panel">
-        <h2>Anomalías</h2>
-        <ul id="anomalias">
-          <li>Sin anomalías detectadas.</li>
-        </ul>
-      </div>
-    </section>
-  </main>
+        <div class="panel">
+          <h2>Anomalías</h2>
+          <ul id="anomalias">
+            <li>Sin anomalías detectadas.</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+  </div>
 
   <script>
     const API_URL = "https://quincena-api-533093663517.us-central1.run.app";
 
-    let usuarios = [];
-    let usuarioIdActual = localStorage.getItem("quincena_usuario_id") || "";
+    // ---------------------------------------------------------------
+    // Autenticación: el token JWT es la prueba de identidad.
+    // El usuario_id ya no se elige; se lee del propio token.
+    // ---------------------------------------------------------------
+
+    function getToken() {
+      return localStorage.getItem("quincena_token") || "";
+    }
+
+    function decodificarToken(token) {
+      // Un JWT tiene 3 partes separadas por puntos. La del medio es el
+      // payload en base64url. Lo decodificamos para leer sub (id) y exp.
+      try {
+        const payloadBase64 = token.split(".")[1];
+        const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+        const json = decodeURIComponent(
+          atob(base64)
+            .split("")
+            .map(function (c) {
+              return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+            })
+            .join("")
+        );
+        return JSON.parse(json);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function tokenValido(token) {
+      const payload = decodificarToken(token);
+      if (!payload || !payload.exp) {
+        return false;
+      }
+      const ahora = Math.floor(Date.now() / 1000);
+      return payload.exp > ahora;
+    }
+
+    function usuarioIdDelToken() {
+      const payload = decodificarToken(getToken());
+      return payload ? Number(payload.sub) : null;
+    }
+
+    function authHeaders() {
+      return {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + getToken()
+      };
+    }
+
+    // Si una respuesta es 401, la sesión ya no sirve: cerrar y volver al login.
+    function sesionExpirada(response) {
+      if (response.status === 401) {
+        logout();
+        setStatus("loginStatus", "Tu sesión expiró. Inicia sesión de nuevo.", "error");
+        return true;
+      }
+      return false;
+    }
+
+    // ---------------------------------------------------------------
+    // Mostrar / ocultar pantallas
+    // ---------------------------------------------------------------
+
+    function mostrarLogin() {
+      document.getElementById("loginScreen").style.display = "block";
+      document.getElementById("appScreen").style.display = "none";
+    }
+
+    function mostrarApp() {
+      document.getElementById("loginScreen").style.display = "none";
+      document.getElementById("appScreen").style.display = "block";
+
+      const email = localStorage.getItem("quincena_email") || "";
+      document.getElementById("usuarioActual").textContent =
+        email ? ("Sesión: " + email) : "Sesión activa";
+
+      document.getElementById("fecha").valueAsDate = new Date();
+      cargarDashboard();
+    }
+
+    // ---------------------------------------------------------------
+    // Login / Logout
+    // ---------------------------------------------------------------
+
+    async function login() {
+      const email = document.getElementById("loginEmail").value.trim();
+      const password = document.getElementById("loginPassword").value;
+
+      if (!email || !password) {
+        setStatus("loginStatus", "Escribe tu correo y contraseña.", "error");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email, password: password })
+        });
+
+        const data = await response.json().catch(function () { return {}; });
+
+        if (!response.ok) {
+          const detalle = data.detail || "No se pudo iniciar sesión.";
+          setStatus("loginStatus", detalle, "error");
+          return;
+        }
+
+        localStorage.setItem("quincena_token", data.access_token);
+        localStorage.setItem("quincena_email", email);
+
+        document.getElementById("loginPassword").value = "";
+        setStatus("loginStatus", "", "");
+        mostrarApp();
+
+      } catch (error) {
+        console.error(error);
+        setStatus("loginStatus", "Error de conexión. Revisa que la API esté activa.", "error");
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem("quincena_token");
+      localStorage.removeItem("quincena_email");
+      document.getElementById("loginEmail").value = "";
+      document.getElementById("loginPassword").value = "";
+      mostrarLogin();
+    }
+
+    // ---------------------------------------------------------------
+    // Utilidades de UI
+    // ---------------------------------------------------------------
 
     function formatoDinero(valor) {
       const numero = Number(valor || 0);
@@ -293,71 +467,27 @@
       document.getElementById("anomalias").innerHTML = "<li>Sin anomalías detectadas.</li>";
     }
 
-    function actualizarTextoUsuarioActual() {
-      const usuario = usuarios.find(u => String(u.id) === String(usuarioIdActual));
-      const el = document.getElementById("usuarioActual");
-
-      if (!usuario) {
-        el.textContent = "Usuario actual: no seleccionado";
-        return;
-      }
-
-      el.textContent = `Usuario actual: ${usuario.nombre} (id ${usuario.id})`;
-    }
-
-    async function cargarUsuarios() {
-      try {
-        const response = await fetch(`${API_URL}/usuarios`);
-
-        if (!response.ok) {
-          throw new Error("No se pudieron cargar los usuarios.");
-        }
-
-        usuarios = await response.json();
-
-        const select = document.getElementById("usuarioSelect");
-        select.innerHTML = "";
-
-        if (usuarios.length === 0) {
-          select.innerHTML = "<option value=''>No hay usuarios. Crea uno nuevo.</option>";
-          limpiarDashboard();
-          return;
-        }
-
-        for (const usuario of usuarios) {
-          const option = document.createElement("option");
-          option.value = usuario.id;
-          option.textContent = `${usuario.nombre} - Presupuesto ${formatoDinero(usuario.presupuesto_mensual)}`;
-          select.appendChild(option);
-        }
-
-        const existeUsuarioGuardado = usuarios.some(u => String(u.id) === String(usuarioIdActual));
-
-        if (!usuarioIdActual || !existeUsuarioGuardado) {
-          usuarioIdActual = String(usuarios[0].id);
-          localStorage.setItem("quincena_usuario_id", usuarioIdActual);
-        }
-
-        select.value = usuarioIdActual;
-        actualizarTextoUsuarioActual();
-        await cargarDashboard();
-
-      } catch (error) {
-        console.error(error);
-        document.getElementById("usuarioSelect").innerHTML = "<option value=''>Error cargando usuarios</option>";
-        setStatus("usuarioStatus", "Error cargando usuarios. Revisa que Cloud Run y Cloud SQL estén activos.", "error");
-      }
-    }
+    // ---------------------------------------------------------------
+    // Dashboard y gastos (usan el usuario_id del token)
+    // ---------------------------------------------------------------
 
     async function cargarDashboard() {
-      if (!usuarioIdActual) {
+      const usuarioId = usuarioIdDelToken();
+
+      if (!usuarioId) {
         limpiarDashboard();
-        actualizarTextoUsuarioActual();
         return;
       }
 
       try {
-        const response = await fetch(`${API_URL}/dashboard?usuario_id=${usuarioIdActual}`);
+        const response = await fetch(
+          `${API_URL}/dashboard?usuario_id=${usuarioId}`,
+          { headers: authHeaders() }
+        );
+
+        if (sesionExpirada(response)) {
+          return;
+        }
 
         if (!response.ok) {
           throw new Error("No se pudo cargar el dashboard.");
@@ -377,7 +507,7 @@
         let categorias = [];
 
         if (Array.isArray(desglose)) {
-          categorias = desglose.map(item => {
+          categorias = desglose.map(function (item) {
             const categoria = item.categoria || item.nombre || item.category || "Sin categoría";
             const monto = item.total || item.monto || item.gastado || item.valor || 0;
             return [categoria, monto];
@@ -389,7 +519,9 @@
         if (categorias.length === 0) {
           desgloseEl.innerHTML = "<li>Sin gastos registrados para este usuario.</li>";
         } else {
-          for (const [categoria, monto] of categorias) {
+          for (const par of categorias) {
+            const categoria = par[0];
+            const monto = par[1];
             const li = document.createElement("li");
             li.textContent = `${categoria}: ${formatoDinero(monto)}`;
             desgloseEl.appendChild(li);
@@ -412,7 +544,6 @@
               const categoria = anomalia.categoria || anomalia.category || "Sin categoría";
               const monto = anomalia.monto || anomalia.total || anomalia.valor || 0;
               const fecha = anomalia.fecha || anomalia.date || "Sin fecha";
-
               li.textContent = `${categoria}: ${formatoDinero(monto)} — ${fecha}`;
             }
 
@@ -426,56 +557,11 @@
       }
     }
 
-    async function crearUsuario() {
-      const nombre = document.getElementById("nombreUsuario").value.trim();
-      const ingreso = Number(document.getElementById("ingresoMensual").value);
-      const presupuesto = Number(document.getElementById("presupuestoMensual").value);
-
-      if (!nombre || ingreso < 0 || presupuesto < 0 || Number.isNaN(ingreso) || Number.isNaN(presupuesto)) {
-        setStatus("usuarioStatus", "Completa nombre, ingreso mensual y presupuesto mensual.", "error");
-        return;
-      }
-
-      try {
-        const response = await fetch(`${API_URL}/usuarios`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            nombre: nombre,
-            ingreso_mensual: ingreso,
-            presupuesto_mensual: presupuesto
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error("No se pudo crear el usuario.");
-        }
-
-        const data = await response.json();
-        const nuevoUsuario = data.usuario;
-
-        usuarioIdActual = String(nuevoUsuario.id);
-        localStorage.setItem("quincena_usuario_id", usuarioIdActual);
-
-        document.getElementById("nombreUsuario").value = "";
-        document.getElementById("ingresoMensual").value = "";
-        document.getElementById("presupuestoMensual").value = "";
-
-        setStatus("usuarioStatus", `Usuario creado correctamente: ${nuevoUsuario.nombre}`, "ok");
-
-        await cargarUsuarios();
-
-      } catch (error) {
-        console.error(error);
-        setStatus("usuarioStatus", "Error creando usuario. Revisa la API.", "error");
-      }
-    }
-
     async function guardarGasto() {
-      if (!usuarioIdActual) {
-        setStatus("gastoStatus", "Primero selecciona o crea un usuario.", "error");
+      const usuarioId = usuarioIdDelToken();
+
+      if (!usuarioId) {
+        setStatus("gastoStatus", "Tu sesión no es válida. Inicia sesión de nuevo.", "error");
         return;
       }
 
@@ -491,16 +577,18 @@
       try {
         const response = await fetch(`${API_URL}/gastos`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: authHeaders(),
           body: JSON.stringify({
-            usuario_id: Number(usuarioIdActual),
+            usuario_id: usuarioId,
             monto: monto,
             categoria: categoria,
             fecha: fecha
           })
         });
+
+        if (sesionExpirada(response)) {
+          return;
+        }
 
         if (!response.ok) {
           throw new Error("No se pudo guardar el gasto.");
@@ -519,17 +607,18 @@
       }
     }
 
-    document.getElementById("usuarioSelect").addEventListener("change", async (event) => {
-      usuarioIdActual = event.target.value;
-      localStorage.setItem("quincena_usuario_id", usuarioIdActual);
-      actualizarTextoUsuarioActual();
-      setStatus("gastoStatus", "", "");
-      await cargarDashboard();
-    });
+    // ---------------------------------------------------------------
+    // Arranque: si hay token válido, mostrar la app; si no, el login.
+    // ---------------------------------------------------------------
 
-    document.getElementById("fecha").valueAsDate = new Date();
-
-    cargarUsuarios();
+    (function iniciar() {
+      if (tokenValido(getToken())) {
+        mostrarApp();
+      } else {
+        localStorage.removeItem("quincena_token");
+        mostrarLogin();
+      }
+    })();
   </script>
 </body>
 </html>
