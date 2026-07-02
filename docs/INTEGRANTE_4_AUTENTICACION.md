@@ -268,10 +268,128 @@ backend/
 
 ---
 
-## 9. Pendientes
+## 9. Despliegue a Cloud Run
 
-- Desplegar a Cloud Run inyectando `JWT_SECRET` desde Secret Manager, igual
-  que ya se hace con `db-password`.
-- Agregar la pantalla de login en el frontend, que guarde el token y lo envíe
-  en el header `Authorization` de cada petición.
-- Probar el caso `403` con un token de usuario no-admin.
+Se redeployó el backend en Cloud Run para que la autenticación viviera en
+producción, inyectando `JWT_SECRET` desde Secret Manager (igual que
+`db-password`).
+
+### Permiso para leer el secreto
+
+La cuenta de servicio de Cloud Run necesitaba permiso para leer `jwt-secret`.
+Se le dio el rol `secretAccessor` solo sobre ese secreto (los permisos en
+Secret Manager son por secreto).
+
+```bash
+gcloud secrets add-iam-policy-binding jwt-secret \
+  --member="serviceAccount:533093663517-compute@developer.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+```
+
+### Reconstrucción de la imagen
+
+El código nuevo (con `auth.py`, `seguridad.py`, login y admin) se empaquetó en
+una imagen nueva. El Dockerfile copia toda la carpeta `backend/`, así que los
+archivos nuevos se incluyen automáticamente. El `.dockerignore` excluye `.env`,
+por lo que las credenciales no entran a la imagen.
+
+```bash
+cd ~/quincena-cloud-final
+cp cloud/Dockerfile Dockerfile
+gcloud builds submit \
+  --tag us-central1-docker.pkg.dev/quincena-final-2026/quincena-repo/quincena-api:latest .
+rm Dockerfile
+```
+
+### Deploy
+
+Se agregó `JWT_SECRET=jwt-secret:latest` a `--set-secrets`. Importante: esa
+bandera reemplaza toda la lista de secretos, así que hay que listar
+`db-password` y `jwt-secret` juntos. Lo mismo aplica a `--set-env-vars`.
+
+```bash
+gcloud run deploy quincena-api \
+  --image us-central1-docker.pkg.dev/quincena-final-2026/quincena-repo/quincena-api:latest \
+  --region us-central1 \
+  --platform managed \
+  --execution-environment gen2 \
+  --allow-unauthenticated \
+  --add-cloudsql-instances quincena-final-2026:us-central1:quincena-mysql \
+  --set-env-vars DB_SOCKET=/cloudsql/quincena-final-2026:us-central1:quincena-mysql,DB_USER=quincena_user,DB_NAME=quincena \
+  --set-secrets DB_PASSWORD=db-password:latest,JWT_SECRET=jwt-secret:latest
+```
+
+### Pruebas en producción
+
+- `GET /health` respondió `{"status":"ok"}` (el contenedor arrancó leyendo
+  ambos secretos).
+- `POST /login` con la cuenta de admin respondió `200` con un token y
+  `"rol":"admin"`. Esto confirma que el login funciona de punta a punta en la
+  nube: recibe la petición, consulta Cloud SQL, verifica el password y firma el
+  JWT con la clave de Secret Manager.
+
+URL pública del servicio:
+
+```txt
+https://quincena-api-533093663517.us-central1.run.app
+```
+
+---
+
+## 10. Pantalla de login en el frontend
+
+Se agregó una pantalla de login a `frontend/index.html` (y su copia
+`docs/index.html`, que es la que publica GitHub Pages). Esto es el "Nivel 1":
+la puerta de entrada de la web app.
+
+### Cambios
+
+- **Pantalla de login primero**: al abrir la app, si no hay token válido se
+  muestra un formulario de correo y contraseña. El dashboard queda oculto hasta
+  iniciar sesión.
+- **Se quitó el selector de usuarios** y la creación de usuarios sin
+  contraseña. Ese selector era justamente el hueco: cualquiera elegía cualquier
+  usuario. Ahora quién eres lo decide tu token.
+- **El usuario se lee del token**: el frontend decodifica el payload del JWT en
+  el navegador (base64url) para obtener el `usuario_id` (campo `sub`). No hace
+  falta un endpoint nuevo.
+- **Cada petición manda el token** en el header `Authorization: Bearer <token>`.
+  Aunque `/dashboard` y `/gastos` todavía no lo verifican (ver Nivel 2), el
+  frontend ya queda listo para cuando se protejan.
+- **Botón de cerrar sesión**: borra el token y regresa al login.
+- **Sesión vencida**: si una petición devuelve `401`, el frontend cierra la
+  sesión y vuelve al login.
+
+El token se guarda en `localStorage` con la clave `quincena_token`, y el correo
+en `quincena_email` (solo para mostrar quién tiene la sesión).
+
+### Pruebas realizadas
+
+Se probó local con Web Preview en Cloud Shell:
+
+```bash
+python3 -m http.server 8081 --directory frontend
+```
+
+- Al abrir, mostró la pantalla de login (no el dashboard).
+- Login con la cuenta de admin llevó al dashboard con datos reales.
+- Cerrar sesión regresó al login.
+- Registrar un gasto funcionó y refrescó las tarjetas.
+
+Después se publicó en GitHub Pages:
+
+```txt
+https://mario-cloud-prog.github.io/quincena-cloud-final/
+```
+
+---
+
+## 11. Pendientes
+
+- **Nivel 2 de seguridad**: proteger `/dashboard` y `/gastos` en el backend
+  para que lean el usuario del token en vez del `usuario_id` del query. Esto
+  cierra el hueco del todo a nivel API; hoy el candado está en el frontend.
+- Probar el caso `403` con un token de usuario no-admin (usuario autenticado
+  pero sin permisos de administrador).
+- Considerar cambiar la contraseña del admin si se reutiliza en otros
+  servicios, como buena práctica de seguridad.
